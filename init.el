@@ -1,11 +1,11 @@
-;;; init.el --- Portable sane evil emacs configuration -*- lexical-binding: t; -*-
+;;; init.el --- Portable sane evil emacs configuration 
 
 ;; ====================
 ;; Performance / daemon optimized
 ;; ====================
 (setq gc-cons-threshold most-positive-fixnum
       gc-cons-percentage 0.6
-      read-process-output-max (* 8 1024 1024)) ;; для LSP и больших процессов
+      read-process-output-max (* 8 1024 1024)) 
 
 (add-hook 'emacs-startup-hook
           (lambda ()
@@ -435,7 +435,6 @@
 (use-package eglot
   :ensure t
   :config
-  ;; список языков и серверов
   (setq my/eglot-language-servers
         '((c-mode . "clangd")
           (c++-mode . "clangd")
@@ -448,7 +447,6 @@
           (python-mode . "pyright")
           (java-mode . "jdtls")))
 
-  ;; автоматически подключать сервер при открытии буфера
   (dolist (pair my/eglot-language-servers)
     (let ((mode (car pair)))
       (add-hook (intern (format "%s-hook" mode))
@@ -471,7 +469,6 @@
     (kbd "<leader> l e") #'my-eglot-enable
     (kbd "<leader> l d") #'my-eglot-disable))
 
-;; добавить eglot в список источников для completion
 (add-hook 'eglot-managed-mode-hook
           (lambda ()
             (setq-local completion-at-point-functions
