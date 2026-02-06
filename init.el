@@ -12,7 +12,6 @@
             (setq gc-cons-threshold (* 50 1024 1024)
                   gc-cons-percentage 0.1)))
 
-;; динамический GC при minibuffer
 (defun my-minibuffer-setup ()
   (setq gc-cons-threshold most-positive-fixnum))
 
