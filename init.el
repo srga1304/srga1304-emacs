@@ -476,6 +476,92 @@
 
 (add-hook 'eglot-managed-mode-hook #'eldoc-mode)
 
+
+;; ====================
+;; Org-mode
+;; ====================
+
+(setq org-directory "~/org")
+(setq org-agenda-files
+      '("~/org/agenda/todo.org"
+        "~/org/journal/"
+        "~/org/projects/"))
+
+;; TODO
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "NEXT(n)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELED(c)")))
+
+(setq org-todo-keyword-faces
+      '(("TODO" . (:foreground "red" :weight bold))
+        ("NEXT" . (:foreground "orange" :weight bold))
+        ("IN-PROGRESS" . (:foreground "yellow" :weight bold))
+        ("DONE" . (:foreground "green" :weight bold))
+        ("CANCELED" . (:foreground "gray" :weight bold))))
+
+;; Org Capture
+(setq org-capture-templates
+      '(("t" "Task" entry (file "~/org/agenda/todo.org")
+         "* TODO %?\n  %U\n  %a\n  %i")
+        ("j" "Journal" entry (file+datetree "~/org/journal/journal.org")
+         "* %?\nEntered on %U\n  %i\n  %a")))
+
+(global-set-key (kbd "C-c c") 'org-capture)
+
+;; Org Agenda
+(setq org-agenda-span 'week)
+(setq org-agenda-start-on-weekday 1)
+(setq org-agenda-start-day nil)
+(setq org-agenda-show-all-dates t)
+(setq org-log-done 'time)
+(setq org-log-into-drawer t)
+
+;; Org Refile
+(setq org-refile-targets
+      '(("~/org/agenda/todo.org" :maxlevel . 1)
+        ("~/org/projects/" :maxlevel . 2)))
+
+;; Org Attach (pictures, gif, pdf)
+(setq org-attach-id-dir "~/org/assets/")
+
+;; Org Babel
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (python . t)
+   (shell . t)
+   (C . t)
+   (java . t)
+   (js . t)
+   (sql . t)
+   (ruby . t)
+   (R . t)))
+
+(setq org-confirm-babel-evaluate nil)
+
+;; Org Habit
+(require 'org-habit)
+(add-to-list 'org-modules 'org-habit)
+(setq org-habit-graph-column 50)
+
+;; Links
+(setq org-link-descriptive t)
+
+;; Evil
+(evil-define-key 'normal 'global
+  (kbd "<leader> o a") #'org-agenda
+  (kbd "<leader> o w") #'(lambda () (interactive) (org-agenda nil "a"))
+  (kbd "<leader> o c") #'org-capture
+  (kbd "<leader> o j") #'org-journal-new-entry
+  (kbd "<leader> o b") #'org-switchb)
+
+(evil-define-key 'normal org-agenda-mode-map
+  (kbd "<leader> c") #'org-agenda-set-tags
+  (kbd "<leader> d") #'org-agenda-deadline
+  (kbd "<leader> t") #'org-agenda-todo
+  (kbd "<leader> s") #'org-agenda-schedule
+  (kbd "<leader> q") #'quit-window)
+
+
 ;;; init.el ends here
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
