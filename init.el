@@ -478,49 +478,60 @@
 
 
 ;; ====================
-;; Org-mode
+;; Org-mode configuration
 ;; ====================
 
 (setq org-directory "~/org")
 (setq org-agenda-files
-      '("~/org/agenda/todo.org"
-        "~/org/journal/"
-        "~/org/projects/"))
+      '("~/org/todo.org"
+        "~/org/life-todo.org"
+        "~/org/study-todo.org"
+        "~/org/dev-todo.org"))
 
-;; TODO
 (setq org-todo-keywords
-      '((sequence "TODO(t)" "NEXT(n)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELED(c)")))
+      '((sequence "TODO(t)" "|" "DONE(d)" "CANCELED(c)")))
 
-(setq org-todo-keyword-faces
-      '(("TODO" . (:foreground "red" :weight bold))
-        ("NEXT" . (:foreground "orange" :weight bold))
-        ("IN-PROGRESS" . (:foreground "yellow" :weight bold))
-        ("DONE" . (:foreground "green" :weight bold))
-        ("CANCELED" . (:foreground "gray" :weight bold))))
+(setq org-log-done 'time
+      org-log-into-drawer t)
 
-;; Org Capture
+;; Capture: single prompt for context
+(defun my/org-capture-context ()
+  "Prompt once for context and return a cons (FILE . TAG)."
+  (let ((ctx (string-trim (read-string "Context (life/study/dev, empty=default): "))))
+    (cond
+     ((string= ctx "life")  (cons "~/org/life-todo.org"  "life"))
+     ((string= ctx "study") (cons "~/org/study-todo.org" "study"))
+     ((string= ctx "dev")   (cons "~/org/dev-todo.org"   "dev"))
+     (t                     (cons "~/org/todo.org"       "")))))
+
 (setq org-capture-templates
-      '(("t" "Task" entry (file "~/org/agenda/todo.org")
-         "* TODO %?\n  %U\n  %a\n  %i")
-        ("j" "Journal" entry (file+datetree "~/org/journal/journal.org")
-         "* %?\nEntered on %U\n  %i\n  %a")))
+      '(("t" "Context TODO" entry
+         (file+headline
+          (lambda ()
+            (let ((c (my/org-capture-context)))
+              (setq my/org-capture-selected c)
+              (car c)))
+          "Tasks")
+         "* TODO %?\n  %U%(when (not (string-empty-p (cdr my/org-capture-selected)))
+                  (concat \" :\" (cdr my/org-capture-selected) \":\"))\n\n")))
 
-(global-set-key (kbd "C-c c") 'org-capture)
+(global-set-key (kbd "C-c c") #'org-capture)
 
-;; Org Agenda
-(setq org-agenda-span 'week)
-(setq org-agenda-start-on-weekday 1)
-(setq org-agenda-start-day nil)
-(setq org-agenda-show-all-dates t)
-(setq org-log-done 'time)
-(setq org-log-into-drawer t)
+;; Agenda: weekly
+(setq org-agenda-span 'week
+      org-agenda-start-on-weekday 1
+      org-agenda-show-all-dates t)
 
-;; Org Refile
+
+;; Refile targets
 (setq org-refile-targets
-      '(("~/org/agenda/todo.org" :maxlevel . 1)
-        ("~/org/projects/" :maxlevel . 2)))
+      '(("~/org/todo.org"       :maxlevel . 1)
+        ("~/org/life-todo.org"  :maxlevel . 1)
+        ("~/org/study-todo.org" :maxlevel . 1)
+        ("~/org/dev-todo.org"   :maxlevel . 1)
+        ("~/org/projects/"      :maxlevel . 2)))
 
-;; Org Attach (pictures, gif, pdf)
+;; Org Attach
 (setq org-attach-id-dir "~/org/assets/")
 
 ;; Org Babel
@@ -530,28 +541,20 @@
    (python . t)
    (shell . t)
    (C . t)
-   (java . t)
    (js . t)
    (sql . t)
    (ruby . t)
    (R . t)))
-
 (setq org-confirm-babel-evaluate nil)
-
-;; Org Habit
-(require 'org-habit)
-(add-to-list 'org-modules 'org-habit)
-(setq org-habit-graph-column 50)
 
 ;; Links
 (setq org-link-descriptive t)
 
-;; Evil
+;; Evil bindings
 (evil-define-key 'normal 'global
   (kbd "<leader> o a") #'org-agenda
-  (kbd "<leader> o w") #'(lambda () (interactive) (org-agenda nil "a"))
+  (kbd "<leader> o w") (lambda () (interactive) (org-agenda nil "a"))
   (kbd "<leader> o c") #'org-capture
-  (kbd "<leader> o j") #'org-journal-new-entry
   (kbd "<leader> o b") #'org-switchb)
 
 (evil-define-key 'normal org-agenda-mode-map
@@ -560,6 +563,7 @@
   (kbd "<leader> t") #'org-agenda-todo
   (kbd "<leader> s") #'org-agenda-schedule
   (kbd "<leader> q") #'quit-window)
+
 
 
 ;;; init.el ends here
