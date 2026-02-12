@@ -335,6 +335,16 @@
   :bind ("C-c r" . rg-menu))
 
 ;; ====================
+;; Markdown
+;; ====================
+(use-package markdown-mode
+  :ensure t
+  :commands (markdown-mode gfm-mode)
+  :mode ("\\.md\\'" . markdown-mode)
+  :init
+  (setq markdown-command "markdown"))
+
+;; ====================
 ;; Gdscript
 ;; ====================
 (use-package gdscript-mode
