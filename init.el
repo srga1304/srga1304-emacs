@@ -82,11 +82,19 @@
 (setq use-package-always-ensure t)
 
 ;; ====================
+;; Undo
+;; ====================
+(use-package undo-tree
+  :init
+  (global-undo-tree-mode))
+
+;; ====================
 ;; Evil
 ;; ====================
 (use-package evil
   :ensure t
   :init
+  (setq evil-undo-system 'undo-tree)
   (setq evil-want-keybinding nil
         evil-want-C-u-scroll t
         evil-want-Y-yank-to-eol t
@@ -111,13 +119,6 @@
   (kbd "<leader> b b") #'switch-to-buffer
   (kbd "<leader> w s") #'split-window-below
   (kbd "<leader> w v") #'split-window-right)
-
-;; ====================
-;; Undo
-;; ====================
-(use-package undo-fu
-  :ensure t)
-(setq evil-undo-system 'undo-fu)
 
 ;; ====================
 ;; Dired
