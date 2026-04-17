@@ -1,11 +1,11 @@
-;;; init.el --- Portable sane evil emacs configuration 
+;;; init.el --- Portable sane evil emacs configuration
 
 ;; ====================
 ;; Performance / daemon optimized
 ;; ====================
 (setq gc-cons-threshold most-positive-fixnum
       gc-cons-percentage 0.6
-      read-process-output-max (* 8 1024 1024)) 
+      read-process-output-max (* 8 1024 1024))
 
 (add-hook 'emacs-startup-hook
           (lambda ()
@@ -31,14 +31,14 @@
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore)
 
-(set-frame-parameter nil 'alpha-background 90)
-(add-to-list 'default-frame-alist '(alpha-background . 90))
+(set-frame-parameter nil 'alpha-background 85)
+(add-to-list 'default-frame-alist '(alpha-background . 85))
 
 ;; ====================
 ;; Font config
 ;; ====================
 (defvar my/font-name "Monospace")
-(defvar my/font-size 145)
+(defvar my/font-size 110)
 
 (set-face-attribute 'default nil
                     :font my/font-name
@@ -87,7 +87,7 @@
 (use-package undo-tree
   :init
   (global-undo-tree-mode))
-
+  (setq undo-tree-auto-save-history nil)
 ;; ====================
 ;; Evil
 ;; ====================
@@ -393,7 +393,7 @@
 ;; ====================
 (setq display-line-numbers-type 'relative)
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
-
+(add-hook 'text-mode-hook 'display-line-numbers-mode)
 ;; ====================
 ;; UI enhancements
 ;; ====================
@@ -487,93 +487,86 @@
 
 (add-hook 'eglot-managed-mode-hook #'eldoc-mode)
 
-
 ;; ====================
-;; Org-mode configuration
+;; Org Mode
 ;; ====================
+(use-package org
+  :ensure nil
+  :bind (("C-c c" . org-capture))
+  :config
+  (setq org-directory "~/org"
+        org-agenda-files '("~/org/todo.org"
+                           "~/org/life-todo.org"
+                           "~/org/study-todo.org"
+                           "~/org/dev-todo.org"
+                           "~/org/ideas.org")
+        org-todo-keywords '((sequence "TODO(t)" "IDEA(i)" "|" "DONE(d)" "CANCELED(c)"))
+        org-auto-align-tags nil
+        org-tags-column 0
+        ;; Disabling indent mode as requested to fix double stars
+        org-startup-indented nil
+        ;; Show images on startup
+        org-startup-with-inline-images t
+        ;; Redisplay images after manipulation
+        org-image-actual-width nil)
 
-(setq org-directory "~/org")
-(setq org-agenda-files
-      '("~/org/todo.org"
-        "~/org/life-todo.org"
-        "~/org/study-todo.org"
-        "~/org/dev-todo.org"))
+  ;; Enable GIF and image animations
+  (setq image-animate-loop t)
+  (add-hook 'org-mode-hook #'org-display-inline-images)
+  (defun my/org-capture-context ()
+    (let ((ctx (string-trim (read-string "Context (life/study/dev, empty=task): "))))
+      (cond
+       ((string= ctx "life")  (cons "~/org/life-todo.org"  "life"))
+       ((string= ctx "study") (cons "~/org/study-todo.org" "study"))
+       ((string= ctx "dev")   (cons "~/org/dev-todo.org"   "dev"))
+       (t                     (cons "~/org/todo.org"       "task")))))
 
-(setq org-todo-keywords
-      '((sequence "TODO(t)" "|" "DONE(d)" "CANCELED(c)")))
+  (defun my/org-capture-math-file ()
+    (let* ((name (read-string "Paper name: "))
+           (filename (format "%s/math/%s.org" org-directory name)))
+      (make-directory (file-name-directory filename) t)
+      filename))
 
-(setq org-log-done 'time
-      org-log-into-drawer t)
+  ;; Capture Templates
+  (setq org-capture-templates
+        '(("t" "Task (Context)" entry
+           (file+headline (lambda () (let ((c (my/org-capture-context))) (setq my/org-capture-selected c) (car c))) "Tasks")
+           "* TODO %?\n  Added: %U\n%(when (not (string-empty-p (cdr my/org-capture-selected))) (concat \" :\" (cdr my/org-capture-selected) \":\"))\n\n")
 
-;; Capture: single prompt for context
-(defun my/org-capture-context ()
-  "Prompt once for context and return a cons (FILE . TAG)."
-  (let ((ctx (string-trim (read-string "Context (life/study/dev, empty=default): "))))
-    (cond
-     ((string= ctx "life")  (cons "~/org/life-todo.org"  "life"))
-     ((string= ctx "study") (cons "~/org/study-todo.org" "study"))
-     ((string= ctx "dev")   (cons "~/org/dev-todo.org"   "dev"))
-     (t                     (cons "~/org/todo.org"       "")))))
+          ("i" "Quick Idea" entry
+           (file+headline "~/org/ideas.org" "Inbox")
+           "* IDEA %?\n  :PROPERTIES:\n  :CREATED: %U\n  :END:\n  %i"
+           :prepend t :empty-lines 1)
 
-(setq org-capture-templates
-      '(("t" "Context TODO" entry
-         (file+headline
-          (lambda ()
-            (let ((c (my/org-capture-context)))
-              (setq my/org-capture-selected c)
-              (car c)))
-          "Tasks")
-         "* TODO %?\n  %U%(when (not (string-empty-p (cdr my/org-capture-selected)))
-                  (concat \" :\" (cdr my/org-capture-selected) \":\"))\n\n")))
+          ("l" "Web Link" entry
+           (file+headline "~/org/ideas.org" "To Read")
+           "* TODO %? :LINK:\n  Added: %U\n  Source: %a\n"
+           :prepend t)
 
-(global-set-key (kbd "C-c c") #'org-capture)
+          ("m" "Math Paper" plain
+           (file my/org-capture-math-file)
+           "#+TITLE: %^{Title}\n#+FILETAGS: :math:\n\n* %?\n"
+           :jump-to-captured t)))
 
-;; Agenda: weekly
-(setq org-agenda-span 'week
-      org-agenda-start-on-weekday 1
-      org-agenda-show-all-dates t)
+  ;; Keybindings
+  (evil-define-key 'normal org-mode-map
+    (kbd "TAB") #'org-cycle
+    (kbd "S-TAB") #'org-shifttab)
+
+  (evil-define-key 'normal 'global
+    (kbd "<leader> o a") #'org-agenda
+    (kbd "<leader> o w") (lambda () (interactive) (org-agenda nil "a"))
+    (kbd "<leader> o c") #'org-capture
+    (kbd "<leader> o b") #'org-switchb)
+
+  ;; Agenda settings
+  (setq org-agenda-span 'week
+        org-agenda-start-on-weekday 1
+        org-agenda-show-all-dates t))
 
 
-;; Refile targets
-(setq org-refile-targets
-      '(("~/org/todo.org"       :maxlevel . 1)
-        ("~/org/life-todo.org"  :maxlevel . 1)
-        ("~/org/study-todo.org" :maxlevel . 1)
-        ("~/org/dev-todo.org"   :maxlevel . 1)
-        ("~/org/projects/"      :maxlevel . 2)))
 
-;; Org Attach
-(setq org-attach-id-dir "~/org/assets/")
 
-;; Org Babel
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '((emacs-lisp . t)
-   (python . t)
-   (shell . t)
-   (C . t)
-   (js . t)
-   (sql . t)
-   (ruby . t)
-   (R . t)))
-(setq org-confirm-babel-evaluate nil)
-
-;; Links
-(setq org-link-descriptive t)
-
-;; Evil bindings
-(evil-define-key 'normal 'global
-  (kbd "<leader> o a") #'org-agenda
-  (kbd "<leader> o w") (lambda () (interactive) (org-agenda nil "a"))
-  (kbd "<leader> o c") #'org-capture
-  (kbd "<leader> o b") #'org-switchb)
-
-(evil-define-key 'normal org-agenda-mode-map
-  (kbd "<leader> c") #'org-agenda-set-tags
-  (kbd "<leader> d") #'org-agenda-deadline
-  (kbd "<leader> t") #'org-agenda-todo
-  (kbd "<leader> s") #'org-agenda-schedule
-  (kbd "<leader> q") #'quit-window)
 
 
 
@@ -583,7 +576,11 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(package-selected-packages nil))
+ '(package-selected-packages
+   '(cape corfu counsel dashboard doom-modeline ement evil-commentary
+          evil-surround gdscript-mode helpful marginalia markdown-mode
+          modus-themes projectile rg undo-fu
+          undo-tree)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
