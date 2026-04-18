@@ -1,35 +1,3 @@
-;;; init.el --- Portable sane evil emacs configuration
-
-;; ====================
-;; Performance / daemon optimized
-;; ====================
-(setq gc-cons-threshold most-positive-fixnum
-      gc-cons-percentage 0.6
-      read-process-output-max (* 8 1024 1024))
-
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (setq gc-cons-threshold (* 50 1024 1024)
-                  gc-cons-percentage 0.1)))
-
-(defun my-minibuffer-setup ()
-  (setq gc-cons-threshold most-positive-fixnum))
-
-(defun my-minibuffer-exit ()
-  (setq gc-cons-threshold (* 50 1024 1024)))
-
-(add-hook 'minibuffer-setup-hook #'my-minibuffer-setup)
-(add-hook 'minibuffer-exit-hook #'my-minibuffer-exit)
-
-;; ====================
-;; UI minimal
-;; ====================
-(menu-bar-mode -1)
-(tool-bar-mode -1)
-(scroll-bar-mode -1)
-
-(setq inhibit-startup-screen t
-      ring-bell-function 'ignore)
 
 (set-frame-parameter nil 'alpha-background 85)
 (add-to-list 'default-frame-alist '(alpha-background . 85))
@@ -126,6 +94,7 @@
 (setq dired-kill-when-opening-new-dired-buffer t
       dired-recursive-copies 'always
       dired-recursive-deletes 'always
+      dired-dwim-target t ; suggest target directory from other window
       delete-by-moving-to-trash t)
 
 (put 'dired-find-alternate-file 'disabled nil)
@@ -133,7 +102,15 @@
 (with-eval-after-load 'dired
   (evil-define-key 'normal dired-mode-map
     (kbd "h") #'dired-up-directory
-    (kbd "l") #'dired-find-file))
+    (kbd "l") #'dired-find-file
+    (kbd "m") #'dired-mark
+    (kbd "u") #'dired-unmark
+    (kbd "R") #'dired-do-rename
+    (kbd "C") #'dired-do-copy
+    (kbd "D") #'dired-do-delete
+    (kbd "+") #'dired-create-directory
+    (kbd "i") #'wdired-change-to-wdired-mode ; Edit file names as text
+    (kbd "g r") #'revert-buffer))
 
 ;; ====================
 ;; Theme
@@ -499,8 +476,9 @@
                            "~/org/life-todo.org"
                            "~/org/study-todo.org"
                            "~/org/dev-todo.org"
-                           "~/org/ideas.org")
-        org-todo-keywords '((sequence "TODO(t)" "IDEA(i)" "|" "DONE(d)" "CANCELED(c)"))
+                           "~/org/ideas.org"
+                           "~/org/links.org")
+        org-todo-keywords '((sequence "TODO(t)" "IDEA(i)" "LINK(l)" "|" "DONE(d)" "CANCELED(c)"))
         org-auto-align-tags nil
         org-tags-column 0
         ;; Disabling indent mode as requested to fix double stars
@@ -539,8 +517,8 @@
            :prepend t :empty-lines 1)
 
           ("l" "Web Link" entry
-           (file+headline "~/org/ideas.org" "To Read")
-           "* TODO %? :LINK:\n  Added: %U\n  Source: %a\n"
+           (file+headline "~/org/links.org" "To Read")
+           "* LINK %? :LINK:\n  Added: %U\n  Source: %a\n"
            :prepend t)
 
           ("m" "Math Paper" plain
@@ -558,6 +536,12 @@
     (kbd "<leader> o w") (lambda () (interactive) (org-agenda nil "a"))
     (kbd "<leader> o c") #'org-capture
     (kbd "<leader> o b") #'org-switchb)
+
+  ;; Quick Access to Org Directories
+  (evil-define-key 'normal 'global
+    (kbd "<leader> o m") (lambda () (interactive) (dired "~/org/math"))
+    (kbd "<leader> o d") (lambda () (interactive) (dired "~/org/dev"))
+    (kbd "<leader> o j")   (lambda () (interactive) (dired "~/org/journal")))
 
   ;; Agenda settings
   (setq org-agenda-span 'week
