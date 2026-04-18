@@ -1,3 +1,35 @@
+;;; init.el --- Portable sane evil emacs configuration
+
+;; ====================
+;; Performance / daemon optimized
+;; ====================
+(setq gc-cons-threshold most-positive-fixnum
+      gc-cons-percentage 0.6
+      read-process-output-max (* 8 1024 1024))
+
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold (* 50 1024 1024)
+                  gc-cons-percentage 0.1)))
+
+(defun my-minibuffer-setup ()
+  (setq gc-cons-threshold most-positive-fixnum))
+
+(defun my-minibuffer-exit ()
+  (setq gc-cons-threshold (* 50 1024 1024)))
+
+(add-hook 'minibuffer-setup-hook #'my-minibuffer-setup)
+(add-hook 'minibuffer-exit-hook #'my-minibuffer-exit)
+
+;; ====================
+;; UI minimal
+;; ====================
+(menu-bar-mode -1)
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+
+(setq inhibit-startup-screen t
+      ring-bell-function 'ignore)
 
 (set-frame-parameter nil 'alpha-background 85)
 (add-to-list 'default-frame-alist '(alpha-background . 85))
