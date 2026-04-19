@@ -1,6 +1,5 @@
-.eln-cache/
-.elpa/
-.places
-.projectile-bookmarks.eld
-.recentf
+*
 
+!.gitignore
+
+!init.el
