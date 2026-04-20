@@ -228,6 +228,7 @@
   ;; Ensure recentf list is loaded at startup
   (run-at-time "0.1 sec" nil 'recentf-load-list)
 
+
   (setq dashboard-center-content t
         dashboard-set-heading-icons t
         dashboard-set-file-icons t
@@ -237,7 +238,6 @@
         dashboard-banner-length 25
         ;; Customize the dashboard items
         dashboard-items '((recents  . 5)
-                          (bookmarks . 5)
                           (projects . 5)))
 
   ;; Configure projectile to work with dashboard
@@ -537,6 +537,14 @@
       (make-directory (file-name-directory filename) t)
       filename))
 
+  (defun my/org-capture-language-file ()
+    (let* ((lang (read-string "Language: "))
+           (dir (expand-file-name "languages/words/" org-directory))
+           (filename (expand-file-name (concat lang ".org") dir)))
+      (unless (file-directory-p dir)
+        (make-directory dir t))
+      filename))
+
   ;; Capture Templates
   (setq org-capture-templates
         '(("t" "Task (Context)" entry
@@ -556,7 +564,12 @@
           ("m" "Math Paper" plain
            (file my/org-capture-math-file)
            "#+TITLE: %^{Title}\n#+FILETAGS: :math:\n\n* %?\n"
-           :jump-to-captured t)))
+           :jump-to-captured t)
+
+          ("w" "Word" entry
+           (file my/org-capture-language-file)
+           "* %^{Word}\n%^{Translation/Definition}"
+           :empty-lines 1)))
 
   ;; Keybindings
   (evil-define-key 'normal org-mode-map
