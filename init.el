@@ -38,7 +38,7 @@
 ;; Font config
 ;; ====================
 (defvar my/font-name "Monospace")
-(defvar my/font-size 110)
+(defvar my/font-size 130)
 
 (set-face-attribute 'default nil
                     :font my/font-name
@@ -606,10 +606,10 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(cape corfu counsel dashboard doom-modeline ement evil-commentary
-          evil-surround gdscript-mode helpful marginalia markdown-mode
-          modus-themes projectile rg undo-fu
-          undo-tree)))
+   '(all-the-icons all-the-icons-nerd-fonts cape corfu counsel dashboard
+                   doom-modeline ement evil-commentary evil-surround
+                   gdscript-mode helpful marginalia markdown-mode
+                   modus-themes projectile rg undo-fu undo-tree)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
