@@ -1,4 +1,4 @@
-;;; init.el --- Portable sane evil emacs configuration
+;;; init.el --- Portable sane evil emacs configuration  -*- lexical-binding: t; -*-
 
 ;; ====================
 ;; Performance / daemon optimized
@@ -496,6 +496,140 @@
 
 (add-hook 'eglot-managed-mode-hook #'eldoc-mode)
 
+
+;; ====================
+;; TYPST
+;; ====================
+
+
+(require 'treesit nil t)
+(when (featurep 'treesit)
+  (unless (treesit-language-available-p 'typst)
+    (add-to-list 'treesit-language-source-alist
+                 '(typst "https://github.com/uben0/tree-sitter-typst"))
+    (message "Typst: installing tree-sitter grammar...")
+    (treesit-install-language-grammar 'typst)
+    (message "Typst: tree-sitter grammar installed.")))
+
+(use-package typst-ts-mode
+  :ensure t
+  :mode "\\.typ\\'")
+
+;; --- Default template for new .typ files ---
+(defconst my/typst-template
+  "#set page(paper: \"a4\", margin: (x: 2.5cm, y: 2.5cm))
+#set text(font: \"New Computer Modern\", size: 11pt)
+#set heading(numbering: \"1.\")
+#set par(justify: true, leading: 0.65em)
+
+#align(center)[
+  #text(size: 20pt, weight: \"bold\")[Document Title]
+  #v(0.3em)
+  #text(size: 14pt, style: \"italic\")[Subtitle]
+  #v(0.5em)
+  #text(size: 10pt)[Author · #datetime.today().display()]
+]
+
+#line(length: 100%)
+#v(1em)
+
+= Introduction
+
+Start writing here.
+"
+  "Default template inserted into new empty Typst files.")
+
+(defun my/typst-maybe-insert-template ()
+  "Insert default template into new empty .typ files."
+  (when (and buffer-file-name
+             (string-match-p "\\.typ\\'" buffer-file-name)
+             (= (buffer-size) 0))
+    (insert my/typst-template)
+    (save-buffer)
+    (goto-char (point-min))))
+
+;; --- Auto-save on 0.5s idle ---
+(defvar-local my/typst-auto-save-timer nil)
+
+(defun my/typst-schedule-save (&rest _)
+  (when my/typst-auto-save-timer
+    (cancel-timer my/typst-auto-save-timer))
+  (setq my/typst-auto-save-timer
+        (run-with-idle-timer
+         0.5 nil
+         (lambda (buf)
+           (when (buffer-live-p buf)
+             (with-current-buffer buf
+               (when (and buffer-file-name
+                          (buffer-modified-p))
+                 (save-buffer)))))
+         (current-buffer))))
+
+(defun my/typst-enable-auto-save ()
+  (add-hook 'after-change-functions #'my/typst-schedule-save nil t))
+
+;; --- Background typst watch (auto-compile to PDF + error reporting) ---
+(require 'ansi-color nil t)
+
+(defvar-local my/typst-watch-process nil
+  "The background `typst watch` process.")
+
+(defun my/typst-watch-filter (proc string)
+  "Process filter for `typst watch` to handle output and report errors."
+  (when (buffer-live-p (process-buffer proc))
+    (with-current-buffer (process-buffer proc)
+      (let ((inhibit-read-only t)
+            (formatted (if (fboundp 'ansi-color-apply)
+                           (ansi-color-apply string)
+                         string))
+            (plain (if (fboundp 'ansi-color-filter-apply)
+                       (ansi-color-filter-apply string)
+                     string)))
+        (goto-char (point-max))
+        (insert formatted)
+        (cond
+         ((string-match-p "\\(?:error\\|Error\\):" plain)
+          (message "Typst Compilation Error! Check *typst-watch*")
+          (unless (get-buffer-window (current-buffer))
+            (display-buffer (current-buffer)
+                            '(display-buffer-at-bottom
+                              (window-height . 8)))))
+         ((string-match-p "Compiled.*successfully" plain)
+          (message "Typst: Compiled successfully.")
+          (let ((win (get-buffer-window (current-buffer))))
+            (when win
+              (delete-window win)))))))))
+
+(defun my/typst-start-watch ()
+  "Start background `typst watch` process for auto-compilation."
+  (when (and buffer-file-name
+             (string-match-p "\\.typ\\'" buffer-file-name))
+    (unless (and my/typst-watch-process
+                 (process-live-p my/typst-watch-process))
+      (let ((buf (get-buffer-create "*typst-watch*")))
+        (with-current-buffer buf
+          (special-mode))
+        (setq my/typst-watch-process
+              (start-process "typst-watch" buf "typst" "watch" buffer-file-name))
+        (set-process-filter my/typst-watch-process #'my/typst-watch-filter)))))
+
+(defun my/typst-stop-watch ()
+  "Stop background `typst watch` process."
+  (when (and my/typst-watch-process
+             (process-live-p my/typst-watch-process))
+    (kill-process my/typst-watch-process)
+    (setq my/typst-watch-process nil)))
+
+(add-hook 'typst-ts-mode-hook #'my/typst-maybe-insert-template)
+(add-hook 'typst-ts-mode-hook #'my/typst-enable-auto-save)
+(add-hook 'typst-ts-mode-hook #'my/typst-start-watch)
+(add-hook 'kill-buffer-hook
+          (lambda ()
+            (when (derived-mode-p 'typst-ts-mode)
+              (my/typst-stop-watch))))
+
+
+
 ;; ====================
 ;; Org Mode
 ;; ====================
@@ -592,11 +726,6 @@
   (setq org-agenda-span 'week
         org-agenda-start-on-weekday 1
         org-agenda-show-all-dates t))
-
-
-
-
-
 
 
 ;;; init.el ends here
